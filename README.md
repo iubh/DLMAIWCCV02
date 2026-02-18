@@ -25,7 +25,7 @@ python RecordImagesFromWebCam.py
 
 ### 3) YOLO object detection example (Ultralytics)
 - `yolo_example.py` – run detection on a single image
-- `yolo26s.pt` – model checkpoint (included in repo root)
+- `yolo26s.pt` – model checkpoint, can be obtained from [https://github.com/ultralytics/ultralytics](https://github.com/ultralytics/ultralytics)
 
 Run:
 ```bash
