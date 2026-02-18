@@ -1,0 +1,17 @@
+numpy>=1.21.0
+opencv-python>=4.7
+# If your OpenCV build does not include cv2.aruco, install this instead of opencv-python:
+# opencv-contrib-python>=4.7
+PyYAML>=6.0
+pandas>=1.4
+matplotlib>=3.6
+
+# MiDaS backend dependencies (torch.hub)
+timm>=0.9.0
+
+# Depth backends
+torch>=1.8.0
+torchvision>=0.9.0
+
+# Optional (only if you use notebooks)
+jupyter
