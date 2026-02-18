@@ -1,93 +1,110 @@
 #!/usr/bin/env python3
 """
-YOLO-based Object Detection Example
+YOLO Object Detection Example (Ultralytics)
 Usage:
     python yolo_example.py --image_path path/to/image.jpg
+    
+    e.g.
+    python yolo_example.py \
+    --image_path bus.jpg \
+    --model_size yolo26s.pt \
+    --confidence_threshold 0.3
+    
+    You can get the model yolo26s.pt, e.g. via https://github.com/ultralytics/ultralytics (tried on 18th of Feb. 2026)
 """
 
-import torch
+from ultralytics import YOLO
 import cv2
-import numpy as np
 import argparse
 from pathlib import Path
+import torch
 
-def load_yolo_model(model_size='yolov5s', device='cpu'):
-    """Load a pre-trained YOLOv5 model."""
-    try:
-        # Load YOLOv5 from torch.hub
-        model = torch.hub.load('ultralytics/yolov5:v6.1', model_size, pretrained=True)
-        model.to(device)
-        model.eval()
-        print(f"Loaded YOLOv5 {model_size} model on {device}")
-        return model
-    except Exception as e:
-        print(f"Failed to load YOLOv5 model: {e}")
-        print("Please install ultralytics YOLOv5: pip install ultralytics")
-        return None
+# -------------------------------
+# Load YOLO Model
+# -------------------------------
+def load_yolo_model(model_size="yolo26s.pt", device="cpu"):
+    """
+    model_size options:
+        yolo26s.pt  (small, fast, strong)
+        yolo26m.pt  (medium, higher accuracy)
+    """
+    model = YOLO(model_size)
+    model.to(device)
+    print(f"Loaded YOLOv11 model: {model_size} on {device}")
+    return model
 
+
+# -------------------------------
+# Run Inference
+# -------------------------------
 def detect_objects(model, image_path, confidence_threshold=0.25):
-    """Perform object detection on an image."""
-    img = cv2.imread(image_path)
-    if img is None:
-        raise ValueError(f"Could not load image from {image_path}")
-
-    results = model(img)
+    results = model(
+        source=image_path,
+        conf=confidence_threshold,
+        verbose=False
+    )[0]
 
     detections = []
-    for *box, conf, cls in results.xyxy[0].cpu().numpy():
-        if conf >= confidence_threshold:
-            detections.append({
-                'bbox': box,              # [x1, y1, x2, y2]
-                'confidence': float(conf),
-                'class_id': int(cls),
-                'class_name': results.names[int(cls)]
-            })
+    for box in results.boxes:
+        x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
+        conf = float(box.conf[0])
+        cls = int(box.cls[0])
+
+        detections.append({
+            "bbox": [x1, y1, x2, y2],
+            "confidence": conf,
+            "class_id": cls,
+            "class_name": model.names[cls]
+        })
 
     return detections
 
+
+# -------------------------------
+# Draw Results
+# -------------------------------
 def draw_detections(image_path, detections):
-    """Draw bounding boxes and labels on the image."""
     img = cv2.imread(image_path)
-    if img is None:
-        raise ValueError(f"Could not load image from {image_path}")
 
     for det in detections:
-        x1, y1, x2, y2 = map(int, det['bbox'])
-        label = f"{det['class_name']}: {det['confidence']:.2f}"
+        x1, y1, x2, y2 = map(int, det["bbox"])
+        label = f"{det['class_name']} {det['confidence']:.2f}"
+
         cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
-        cv2.putText(img, label, (x1, y1 - 10),
+        cv2.putText(img, label, (x1, y1 - 8),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
     return img
 
+
+# -------------------------------
+# Main
+# -------------------------------
 def main():
-    parser = argparse.ArgumentParser(description='YOLO Object Detection Example')
-    parser.add_argument('--image_path', type=str, required=True,
-                        help='Path to input image')
-    parser.add_argument('--model_size', type=str, default='yolov5s',
-                        help='YOLO model size: yolov5s, yolov5m, yolov5l, yolov5x')
-    parser.add_argument('--confidence_threshold', type=float, default=0.25,
-                        help='Confidence threshold for detections')
-    parser.add_argument('--device', type=str, default='cuda' if torch.cuda.is_available() else 'cpu',
-                        help='Device to run the model')
+    parser = argparse.ArgumentParser(description="YOLOv11 Object Detection")
+    parser.add_argument("--image_path", type=str, required=True)
+    parser.add_argument("--model_size", type=str, default="yolo26s.pt",
+                        help="yolo26s.pt or yolo26m.pt")
+    parser.add_argument("--confidence_threshold", type=float, default=0.25)
+    parser.add_argument("--device", type=str,
+                        default="cuda" if torch.cuda.is_available() else "cpu")
+
     args = parser.parse_args()
 
-    model = load_yolo_model(args.model_size, device=args.device)
-    if model is None:
-        return
+    model = load_yolo_model(args.model_size, args.device)
+    detections = detect_objects(model, args.image_path, args.confidence_threshold)
 
-    try:
-        detections = detect_objects(model, args.image_path, args.confidence_threshold)
-        print(f"Detected {len(detections)} objects:")
-        for det in detections:
-            print(f"  - {det['class_name']}: {det['confidence']:.2f}")
+    print(f"Detected {len(detections)} objects:")
+    for det in detections:
+        print(f"  - {det['class_name']}: {det['confidence']:.2f}")
 
-        result_img = draw_detections(args.image_path, detections)
-        output_path = Path(args.image_path).parent / f"detected_{Path(args.image_path).name}"
-        cv2.imwrite(str(output_path), result_img)
-        print(f"Result saved to {output_path}")
+    result_img = draw_detections(args.image_path, detections)
 
-    except Exception as e:
-        print(f"Error during detection: {e}")
+    output_path = Path(args.image_path).parent / f"detected_{Path(args.image_path).name}"
+    cv2.imwrite(str(output_path), result_img)
+
+    print(f"Saved result to: {output_path}")
+
 
 if __name__ == "__main__":
     main()
