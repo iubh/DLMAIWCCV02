@@ -200,6 +200,32 @@ For backprojected (scaled) points, compute distance to GT plane and report RMSE.
 python -m src.main --depth_backend midas
 ```
 
+---
+
+## 6) Jupyter notebook (step-by-step)
+
+An API-driven notebook is provided to explain and execute the pipeline step-by-step:
+
+- `notebooks/step_by_step_depth_eval.ipynb`
+
+Open it with:
+
+```bash
+cd Metric_Evaluation_Monocular_Depth_Estimation
+jupyter notebook notebooks/step_by_step_depth_eval.ipynb
+```
+
+**What it does:**
+- loads calibration (`data/calibration/*.yaml`)
+- loads an evaluation image from `data/images/`
+- detects ArUco + computes the metric ground-truth plane
+- runs the MiDaS depth backend
+- backprojects points in the marker region
+- fits plane + aligns scale + computes metrics
+- saves an overlay image to `outputs/visualizations/notebook_overlay.jpg`
+
+**Note:** capture steps are interactive (OpenCV windows) and are therefore kept in the CLI scripts.
+
 ### Depth Anything V2 (optional)
 
 `src/depth/depth_anything_v2_backend.py` is a stub.
@@ -215,7 +241,7 @@ python -m src.main --depth_backend depth_anything_v2
 
 ---
 
-## 6) Troubleshooting
+## 7) Troubleshooting
 
 ### Marker not detected
 - improve lighting / focus
@@ -233,7 +259,7 @@ python -m src.main --depth_backend depth_anything_v2
 
 ---
 
-## 7) Next steps / experiments
+## 8) Next steps / experiments
 
 You can extend `src/main.py` to run sweeps described in `project_description.md`:
 - distance sweep (0.3m → 2.5m)
